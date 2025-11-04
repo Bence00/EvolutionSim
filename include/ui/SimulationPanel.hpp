@@ -35,7 +35,7 @@ public:
             sim.numAgentB = bCount;
         }
         float sim_speed = sim.simulation_speed;
-        if (ImGui::SliderFloat("Simulation Speed", &sim_speed, 0.1f, 50.0f)) {
+        if (ImGui::SliderFloat("Simulation Speed", &sim_speed, 0.1f, 50.0f, "%.3f", ImGuiSliderFlags_Logarithmic)) {
             sim.simulation_speed = sim_speed;
         }
 

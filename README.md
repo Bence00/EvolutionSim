@@ -6,7 +6,7 @@
 - **ImGui-SFML:** 3.0  
 - **Path setup:** MSYS2’s `mingw64/bin` directory added to Windows `PATH` environment variable  
 
-mkdir build
-cmake -S . -B build
-cmake --build build
-.\build\MyApp.exe
+- mkdir build
+- cmake -S . -B build
+- cmake --build build
+- .\build\MyApp.exe

@@ -17,10 +17,10 @@ public:
     int numAgentA = 100;
     int numAgentB = 100;
 
-    float simulation_speed = 1.f;
+    float simulation_speed = 1.0f;
 
 private:
-    void movement();
+    void movement(float dt);
 
     WorldState& state;
 
