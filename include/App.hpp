@@ -28,5 +28,9 @@ private:
     SimulationPanel simPanel;
     DebugPanel debugPanel;
 
+    sf::View view;
+    bool panning = false;
+    sf::Vector2f oldMousePosWorld;
+
     bool running = true;
 };

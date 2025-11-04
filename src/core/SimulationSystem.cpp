@@ -9,8 +9,8 @@ SimulationSystem::SimulationSystem(WorldState& s)
       distY(0, 0),
       speedDist(-0.25f, 0.25f)
 {
-    numAgentA = 100;
-    numAgentB = 100;
+    numAgentA = 50;
+    numAgentB = 50;
     reset();
 }
 

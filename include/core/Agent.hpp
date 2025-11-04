@@ -8,7 +8,7 @@ public:
         : cell(c),
           energy(100.f),
           speed(spd),
-          size(0.4f),
+          size(0.3f),
           color(col),
           timeSinceMove(0.f)
     {}

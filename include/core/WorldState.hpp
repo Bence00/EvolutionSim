@@ -4,9 +4,9 @@
 #include "core/Agent.hpp"
 
 struct WorldState {
-    int gridWidth  = 30;
-    int gridHeight = 30;
-    int cellSize   = 25;
+    int gridWidth  = 100;
+    int gridHeight = 100;
+    int cellSize   = 15;
 
     std::vector<std::unique_ptr<Agent>> agents;
 };

@@ -12,33 +12,26 @@ GridRenderer::GridRenderer(WorldState& s)
 
 void GridRenderer::draw(sf::RenderWindow& window)
 {
+    const float cell = static_cast<float>(state.cellSize);
+
+    // grid
+    cellShape.setSize({cell, cell});
     for (int y = 0; y < state.gridHeight; ++y) {
         for (int x = 0; x < state.gridWidth; ++x) {
-            cellShape.setSize(sf::Vector2f(
-                static_cast<float>(state.cellSize),
-                static_cast<float>(state.cellSize)
-            ));
-            cellShape.setPosition(sf::Vector2f{
-                static_cast<float>(x * state.cellSize),
-                static_cast<float>(y * state.cellSize)
-            });
+            cellShape.setPosition({x * cell, y * cell});
             window.draw(cellShape);
         }
     }
 
+    // agents
     for (const auto& agent : state.agents) {
-        const auto& cell = agent->cell;
+        const auto& cellPos = agent->cell;
 
-        float s = agent->size * state.cellSize; 
-        agentShape.setSize(sf::Vector2f(2*s, 2*s));
-        
+        agentShape.setSize({cell-1.0f, cell-1.0f});
         agentShape.setFillColor(agent->color);
 
-        float px = cell.x * state.cellSize + (state.cellSize - 2*s) * 0.5f;
-        float py = cell.y * state.cellSize + (state.cellSize - 2*s) * 0.5f;
-
-        agentShape.setPosition(sf::Vector2f(px, py));
-
+        agentShape.setPosition({cellPos.x * cell, cellPos.y * cell});
         window.draw(agentShape);
     }
 }
+
