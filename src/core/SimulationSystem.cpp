@@ -1,10 +1,13 @@
 #include "core/SimulationSystem.hpp"
 #include "core/Agent.hpp"
-#include <random>
 #include <algorithm>
 
 SimulationSystem::SimulationSystem(WorldState& s)
-    : state(s)
+    : state(s),
+      gen(std::random_device{}()),
+      distX(0, 0),
+      distY(0, 0),
+      speedDist(-0.25f, 0.25f)
 {
     numAgentA = 100;
     numAgentB = 100;
@@ -14,27 +17,19 @@ SimulationSystem::SimulationSystem(WorldState& s)
 void SimulationSystem::reset() {
     state.agents.clear();
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> distX(0, state.gridWidth - 1);
-    std::uniform_int_distribution<> distY(0, state.gridHeight - 1);
-    std::uniform_real_distribution<float> speedDist(-0.25f, 0.25f);
+    int W = std::max(1, state.gridWidth);
+    int H = std::max(1, state.gridHeight);
 
-    for (int i = 0; i < numAgentA; ++i) {
-        sf::Vector2i cell{ distX(gen), distY(gen) };
-        auto agent = std::make_unique<AgentA>(cell);
+    distX = std::uniform_int_distribution<>(0, W - 1);
+    distY = std::uniform_int_distribution<>(0, H - 1);
 
-        agent->speed = std::max(0.1f, agent->speed + speedDist(gen));
-        state.agents.push_back(std::move(agent));
-    }
+    spawnPredator();
 
-    for (int i = 0; i < numAgentB; ++i) {
-        sf::Vector2i cell{ distX(gen), distY(gen) };
-        auto agent = std::make_unique<AgentB>(cell);
+    for (int i = 0; i < numAgentA; ++i)
+        spawnAgentA();
 
-        agent->speed = std::max(0.1f, agent->speed + speedDist(gen));
-        state.agents.push_back(std::move(agent));
-    }
+    for (int i = 0; i < numAgentB; ++i)
+        spawnAgentB();
 }
 
 void SimulationSystem::update(sf::Time dt) {
@@ -46,9 +41,7 @@ void SimulationSystem::update(sf::Time dt) {
 }
 
 void SimulationSystem::movement(float dt) {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dist(-1, 1);
+    std::uniform_int_distribution<> stepDist(-1, 1);
 
     const int W = state.gridWidth;
     const int H = state.gridHeight;
@@ -64,8 +57,8 @@ void SimulationSystem::movement(float dt) {
 
         sf::Vector2i current = a->cell;
 
-        int stepX = dist(gen);
-        int stepY = dist(gen);
+        int stepX = stepDist(gen);
+        int stepY = stepDist(gen);
 
         sf::Vector2i next = current;
         next.x += stepX;
@@ -84,7 +77,6 @@ void SimulationSystem::movement(float dt) {
         }
     }
 }
-
 
 void SimulationSystem::collision() {
     const int W = state.gridWidth;
@@ -106,4 +98,31 @@ void SimulationSystem::collision() {
             occupancy[y * W + x] = static_cast<int>(i);
         }
     }
+}
+
+void SimulationSystem::spawnPredator() {
+    auto cell = randomCell();
+    auto predator = std::make_unique<Agent>(cell, 0.1f);
+    predator->color = sf::Color::Red;
+    state.agents.push_back(std::move(predator));
+}
+
+void SimulationSystem::spawnAgentA() {
+    auto cell = randomCell();
+    auto agent = std::make_unique<AgentA>(cell);
+    agent->speed = std::max(0.1f, agent->speed + speedDist(gen));
+    state.agents.push_back(std::move(agent));
+}
+
+void SimulationSystem::spawnAgentB() {
+    auto cell = randomCell();
+    auto agent = std::make_unique<AgentB>(cell);
+    agent->speed = std::max(0.1f, agent->speed + speedDist(gen));
+    state.agents.push_back(std::move(agent));
+}
+
+sf::Vector2i SimulationSystem::randomCell() {
+    int x = distX(gen);
+    int y = distY(gen);
+    return { x, y };
 }

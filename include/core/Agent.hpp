@@ -4,8 +4,14 @@
 
 class Agent {
 public:
-    Agent(sf::Vector2i c, float spd)
-        : cell(c), speed(spd), energy(100.f), size(0.4f), timeSinceMove(0.f) {}
+    Agent(sf::Vector2i c, float spd, sf::Color col = sf::Color::Red)
+        : cell(c),
+          energy(100.f),
+          speed(spd),
+          size(0.4f),
+          color(col),
+          timeSinceMove(0.f)
+    {}
 
     virtual ~Agent() = default;
 
@@ -14,24 +20,19 @@ public:
     float speed;
     float size;
     sf::Color color;
-
-     float timeSinceMove; 
+    float timeSinceMove;
 };
 
 class AgentA : public Agent {
 public:
-    AgentA(sf::Vector2i c)
-        : Agent(c, 1.0f)
-    {
-        color = sf::Color(106, 163, 217);
-    }
+    AgentA(sf::Vector2i c, float spd = 1.0f)
+        : Agent(c, spd, sf::Color(106, 163, 217))
+    {}
 };
 
-class AgentB : public Agent {
+class AgentB: public Agent {
 public:
-    AgentB(sf::Vector2i c)
-        : Agent(c, 1.0f)
-    {
-        color = sf::Color(198, 118, 232); 
-    }
+    AgentB(sf::Vector2i c, float spd = 1.0f)
+        : Agent(c, spd, sf::Color(198, 118, 232))
+    {}
 };
