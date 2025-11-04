@@ -2,11 +2,11 @@
 #include <stdexcept>
 
 App::App()
-    : window(sf::VideoMode({1200, 1200}), "Evo sim"),
-      state{},
-      sim(state),
-      renderer(state),
-      simPanel(sim, state),
+    : window(sf::VideoMode({gWindowWidth, gWindowHeight}), "Evo sim"),
+      world1{},
+      sim(world1),
+      renderer(world1),
+      simPanel(sim, world1),
       debugPanel(),
       view(window.getDefaultView())
 {

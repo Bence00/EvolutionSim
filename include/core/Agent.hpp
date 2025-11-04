@@ -7,20 +7,27 @@ public:
     Agent(sf::Vector2i c, float spd, sf::Color col = sf::Color::Red)
         : cell(c),
           energy(100.f),
-          speed(spd),
+          stepInterval(spd),
           size(0.3f),
-          color(col),
-          timeSinceMove(0.f)
+          color(col),              
+          originalColor(col),
+          timeSinceMove(0.f),
+          reproduceCooldown(5.0f),
+          colorTimer(0.f)
     {}
 
     virtual ~Agent() = default;
 
     sf::Vector2i cell;
     float energy;
-    float speed;
+    float stepInterval;
     float size;
     sf::Color color;
+    sf::Color originalColor;
     float timeSinceMove;
+    float reproduceCooldown = 0.f;
+    inline static constexpr float defaultReproduceCooldown = 5.0f;
+    float colorTimer;
 };
 
 class AgentA : public Agent {
@@ -30,7 +37,7 @@ public:
     {}
 };
 
-class AgentB: public Agent {
+class AgentB : public Agent {
 public:
     AgentB(sf::Vector2i c, float spd = 1.0f)
         : Agent(c, spd, sf::Color(198, 118, 232))

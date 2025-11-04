@@ -7,6 +7,7 @@
 #include "render/GridRenderer.hpp"
 #include "ui/SimulationPanel.hpp"
 #include "ui/DebugPanel.hpp"
+#include "globals.hpp"
 
 class App {
 public:
@@ -22,15 +23,15 @@ private:
     sf::RenderWindow window;
     sf::Clock clock;
 
-    WorldState state;
+    WorldState world1;
     SimulationSystem sim;
     GridRenderer renderer;
     SimulationPanel simPanel;
     DebugPanel debugPanel;
 
     sf::View view;
-    bool panning = false;
     sf::Vector2f oldMousePosWorld;
 
+    bool panning = false;
     bool running = true;
 };

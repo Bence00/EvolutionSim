@@ -15,16 +15,18 @@ public:
     bool isRunning() const { return running; }
 
     void setSpeed(float s) { simulation_speed = s; }
+
     void collision();
+    void repopulate();
 
     int numAgentA = 100;
     int numAgentB = 100;
-    float simulation_speed = 1.0f;
+    float simulation_speed = 5.0f;
+
 
 private:
-    WorldState& state;
+    WorldState& world1;
 
-    // RNG-k
     std::mt19937 gen;
     std::uniform_int_distribution<> distX;
     std::uniform_int_distribution<> distY;
@@ -34,8 +36,12 @@ private:
 
     bool  running = true;
 
-    void movement(float dt);
     sf::Vector2i randomCell();
+
+    void movement(float dt);
+    void updateColors(float dt);
+    void highlightAgent (Agent& agent, sf::Color newColor, float duration);
+
     void spawnPredator();
     void spawnAgentA();
     void spawnAgentB();

@@ -2,6 +2,7 @@
 #include <imgui.h>
 #include "core/SimulationSystem.hpp"
 #include "core/WorldState.hpp"
+#include "core/Agent.hpp"
 
 class SimulationPanel {
 public:
@@ -11,6 +12,7 @@ public:
     void draw() {
         ImGui::Begin("Simulation Settings");
 
+        // start/stop
         bool running = sim.isRunning();
         if (ImGui::Checkbox("Running", &running)) {
             sim.setRunning(running);
@@ -24,6 +26,7 @@ public:
         if (ImGui::SliderInt2("Grid Size", gridSize, 10, 100)) {
             world.gridWidth  = gridSize[0];
             world.gridHeight = gridSize[1];
+            sim.reset();
         }
 
         int aCount = sim.numAgentA;
@@ -34,9 +37,17 @@ public:
         if (ImGui::SliderInt("Agent B count", &bCount, 0, 200)) {
             sim.numAgentB = bCount;
         }
+
         float sim_speed = sim.simulation_speed;
         if (ImGui::SliderFloat("Simulation Speed", &sim_speed, 0.1f, 50.0f, "%.3f", ImGuiSliderFlags_Logarithmic)) {
             sim.simulation_speed = sim_speed;
+        }
+
+        static float cooldown = Agent::defaultReproduceCooldown;  
+        if (ImGui::SliderFloat("Reproduce cooldown", &cooldown, 0.5f, 20.0f, "%.1f s")) {
+            for (auto& ag : world.agents) {
+                ag->reproduceCooldown = cooldown;
+            }
         }
 
         ImGui::End();
