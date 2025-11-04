@@ -13,6 +13,7 @@ public:
     bool isRunning() const { return running; }
 
     void setSpeed(float s) { simulation_speed = s; }
+    void collision();
 
     int numAgentA = 100;
     int numAgentB = 100;
@@ -21,7 +22,8 @@ public:
 
 private:
     void movement(float dt);
-
+    std::vector<int> occupancy;
+    
     WorldState& state;
 
     bool  running = true;
