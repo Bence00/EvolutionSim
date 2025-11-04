@@ -1,0 +1,33 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build MyApp",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
+            "group": "build",
+            "problemMatcher": "$gcc"
+        },
+        {
+            "label": "Run MyApp",
+            "type": "shell",
+            "command": "${workspaceFolder}/build/MyApp.exe",
+            "dependsOn": "Build MyApp",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "panel": "shared",
+                "focus": false,
+                "echo": true,
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
