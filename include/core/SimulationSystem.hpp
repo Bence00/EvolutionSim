@@ -34,7 +34,7 @@ private:
 
     std::vector<int> occupancy;
 
-    bool  running = true;
+    bool  running = false;
 
     sf::Vector2i randomCell();
 

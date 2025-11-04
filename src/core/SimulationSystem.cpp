@@ -2,6 +2,7 @@
 #include "core/Agent.hpp"
 #include <algorithm>
 #include "globals.hpp"
+#include <array>
 
 SimulationSystem::SimulationSystem(WorldState& s)
     : world1(s),
@@ -91,13 +92,38 @@ void SimulationSystem::repopulate() {
     const int W = world1.gridWidth;
     const int H = world1.gridHeight;
 
-    const std::vector<sf::Vector2i> directions = {
-        { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }
+    // 4 irány
+    const std::array<sf::Vector2i, 4> directions = {
+        sf::Vector2i{ 1, 0 },
+        sf::Vector2i{-1, 0 },
+        sf::Vector2i{ 0, 1 },
+        sf::Vector2i{ 0,-1 }
     };
 
-    std::uniform_int_distribution<> typeDist(0, 1); 
-
     std::vector<std::unique_ptr<Agent>> newborns;
+
+    std::uniform_int_distribution<> typeDist(0, 1); // 0 = A, 1 = B
+
+    auto trySpawnAround = [&](const sf::Vector2i& base) -> bool {
+        for (const auto& d : directions) {
+            sf::Vector2i pos = base + d;
+            if (pos.x < 0 || pos.x >= W || pos.y < 0 || pos.y >= H)
+                continue;
+
+            int idx = pos.y * W + pos.x;
+            if (occupancy[idx] == -1) {
+                int type = typeDist(gen);  // véletlen döntés
+
+                if (type == 0)
+                    newborns.push_back(std::make_unique<AgentA>(pos));
+                else
+                    newborns.push_back(std::make_unique<AgentB>(pos));
+
+                return true;
+            }
+        }
+        return false;
+    };
 
     for (std::size_t i = 0; i < world1.agents.size(); ++i) {
         auto& a = world1.agents[i];
@@ -105,51 +131,39 @@ void SimulationSystem::repopulate() {
         if (a->reproduceCooldown > 0.f)
             continue;
 
-        bool isA = dynamic_cast<AgentA*>(a.get()) != nullptr;
-        bool isB = dynamic_cast<AgentB*>(a.get()) != nullptr;
-        if (!isA && !isB)
+        bool aIsA = dynamic_cast<AgentA*>(a.get()) != nullptr;
+        bool aIsB = dynamic_cast<AgentB*>(a.get()) != nullptr;
+        if (!aIsA && !aIsB)
             continue;
 
-        for (const auto& dir : directions) {
-            sf::Vector2i neighbor = a->cell + dir;
-            if (neighbor.x < 0 || neighbor.x >= W || neighbor.y < 0 || neighbor.y >= H)
+        for (const auto& d : directions) {
+            sf::Vector2i npos = a->cell + d;
+            if (npos.x < 0 || npos.x >= W || npos.y < 0 || npos.y >= H)
                 continue;
 
-            int neighborIdx = occupancy[neighbor.y * W + neighbor.x];
-            if (neighborIdx == -1)
+            int nIdx = occupancy[npos.y * W + npos.x];
+            if (nIdx == -1)
                 continue;
 
-            auto& b = world1.agents[neighborIdx];
+            auto& b = world1.agents[nIdx];
 
-            bool neighborIsA = dynamic_cast<AgentA*>(b.get()) != nullptr;
-            bool neighborIsB = dynamic_cast<AgentB*>(b.get()) != nullptr;
+            bool bIsA = dynamic_cast<AgentA*>(b.get()) != nullptr;
+            bool bIsB = dynamic_cast<AgentB*>(b.get()) != nullptr;
 
-            if ((isA && neighborIsB) || (isB && neighborIsA)) {
-                if (a->reproduceCooldown <= 0.f && b->reproduceCooldown <= 0.f) {
+            bool opposite = (aIsA && bIsB) || (aIsB && bIsA);
+            if (!opposite)
+                continue;
 
-                    int type = typeDist(gen);
+            bool spawned = false;
+            spawned = trySpawnAround(a->cell);
+            if (!spawned)
+                spawned = trySpawnAround(b->cell);
 
-                    for (const auto& spawnDir : directions) {
-                        sf::Vector2i spawnPos = a->cell + spawnDir;
-                        if (spawnPos.x < 0 || spawnPos.x >= W || spawnPos.y < 0 || spawnPos.y >= H)
-                            continue;
+            if (spawned) {
+                b->reproduceCooldown = Agent::defaultReproduceCooldown;
 
-                        int idx = spawnPos.y * W + spawnPos.x;
-                        if (occupancy[idx] == -1) {
-                            if (type == 0)
-                                newborns.push_back(std::make_unique<AgentA>(spawnPos));
-                            else
-                                newborns.push_back(std::make_unique<AgentB>(spawnPos));
-
-                            a->reproduceCooldown = a->defaultReproduceCooldown ;
-                            b->reproduceCooldown = b->defaultReproduceCooldown ;
-
-                            highlightAgent(*a, sf::Color::Yellow, a->defaultReproduceCooldown);
-                            highlightAgent(*b, sf::Color::Yellow, b->defaultReproduceCooldown);
-                            break;
-                        }
-                    }
-                }
+                highlightAgent(*a, sf::Color::Yellow, Agent::defaultReproduceCooldown);
+                highlightAgent(*b, sf::Color::Yellow, Agent::defaultReproduceCooldown);
             }
         }
     }

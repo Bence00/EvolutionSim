@@ -12,9 +12,8 @@ public:
     void draw() {
         ImGui::Begin("Simulation Settings");
 
-        // start/stop
         bool running = sim.isRunning();
-        if (ImGui::Checkbox("Running", &running)) {
+        if (ImGui::Checkbox("Start/Pause", &running)) {
             sim.setRunning(running);
         }
 
@@ -23,10 +22,10 @@ public:
         }
 
         int gridSize[2] = { world.gridWidth, world.gridHeight };
-        if (ImGui::SliderInt2("Grid Size", gridSize, 10, 100)) {
+        if (!running && ImGui::SliderInt2("Grid Size", gridSize, 10, 200)) {
             world.gridWidth  = gridSize[0];
             world.gridHeight = gridSize[1];
-            sim.reset();
+            //sim.reset();
         }
 
         int aCount = sim.numAgentA;
@@ -39,12 +38,12 @@ public:
         }
 
         float sim_speed = sim.simulation_speed;
-        if (ImGui::SliderFloat("Simulation Speed", &sim_speed, 0.1f, 50.0f, "%.3f", ImGuiSliderFlags_Logarithmic)) {
+        if (ImGui::SliderFloat("Simulation Speed", &sim_speed, 0.1f, 100.0f, "%.3f", ImGuiSliderFlags_Logarithmic)) {
             sim.simulation_speed = sim_speed;
         }
 
         static float cooldown = Agent::defaultReproduceCooldown;  
-        if (ImGui::SliderFloat("Reproduce cooldown", &cooldown, 0.5f, 20.0f, "%.1f s")) {
+        if (ImGui::SliderFloat("Reproduce cooldown", &cooldown, 0.5f, 200.0f, "%.1f s")) {
             for (auto& ag : world.agents) {
                 ag->reproduceCooldown = cooldown;
             }
