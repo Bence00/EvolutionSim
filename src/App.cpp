@@ -8,11 +8,15 @@ App::App()
       renderer(world1),
       simPanel(sim, world1),
       debugPanel(),
-      view(window.getDefaultView())
+      view(window.getDefaultView()),
+      plotPanel(sim, world1)
+
 {
     window.setFramerateLimit(60);
     if (!ImGui::SFML::Init(window))
         throw std::runtime_error("imgui-sfml init failed");
+
+    ImPlot::CreateContext();
 
     ImGuiIO& io = ImGui::GetIO();
     io.FontGlobalScale = 1.8f;  
@@ -21,6 +25,7 @@ App::App()
 }
 
 App::~App() {
+    ImPlot::DestroyContext();
     ImGui::SFML::Shutdown();
 }
 
@@ -85,13 +90,20 @@ void App::processEvents() {
 
 
 void App::update() {
-    auto dt = clock.restart();
+       auto dt = clock.restart();
     ImGui::SFML::Update(window, dt);
 
     sim.update(dt);
 
-    simPanel.draw();
-    debugPanel.draw(dt, sim);
+    bool resetPressed = simPanel.draw();
+
+    if (resetPressed) {
+        plotPanel.reset(); 
+    }
+
+    plotPanel.update(dt);
+    plotPanel.draw();
+    debugPanel.draw(dt,sim);
 }
 
 void App::render() {

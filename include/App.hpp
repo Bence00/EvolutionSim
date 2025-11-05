@@ -8,6 +8,7 @@
 #include "ui/SimulationPanel.hpp"
 #include "ui/DebugPanel.hpp"
 #include "globals.hpp"
+#include "ui/PlotPanel.hpp"
 
 class App {
 public:
@@ -28,6 +29,7 @@ private:
     GridRenderer renderer;
     SimulationPanel simPanel;
     DebugPanel debugPanel;
+    PlotPanel plotPanel;
 
     sf::View view;
     sf::Vector2f oldMousePosWorld;

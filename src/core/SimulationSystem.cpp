@@ -20,8 +20,8 @@ SimulationSystem::SimulationSystem(WorldState& s)
       gen(std::random_device{}()),
       speedDist(-0.25f, 0.25f)
 {
-    numAgentA = 4;
-    numAgentB = 4;
+    numAgentA = 50;
+    numAgentB = 50;
     newbornCooldownEnabled = true; 
     reset();
 }
@@ -63,21 +63,42 @@ void SimulationSystem::update(sf::Time dt) {
         a->timeUntilDeath(dt.asSeconds(), deathRate);
     }
 
-    world1.agents.erase(
-        std::remove_if(
-            world1.agents.begin(),
-            world1.agents.end(),
-            [](const std::unique_ptr<Agent>& ag) {
-                return ag->lifeTime <= 0.f;
+    const int W = world1.gridWidth;
+    std::size_t i = 0;
+    while (i < world1.agents.size()) {
+        auto& agent = world1.agents[i];
+        
+        if (agent->lifeTime <= 0.f) {
+            const int deadIdx = agent->cell.y * W + agent->cell.x;
+            if (deadIdx >= 0 && deadIdx < occupancy.size() && occupancy[deadIdx] == static_cast<int>(i)) {
+                occupancy[deadIdx] = -1;
             }
-        ),
-        world1.agents.end()
-    );
 
-    collision();
+            std::size_t lastIdx = world1.agents.size() - 1;
+
+            if (i != lastIdx) {
+                world1.agents[i] = std::move(world1.agents[lastIdx]);
+                
+                const int movedIdx = world1.agents[i]->cell.y * W + world1.agents[i]->cell.x;
+
+                if (movedIdx >= 0 && movedIdx < occupancy.size() && occupancy[movedIdx] == static_cast<int>(lastIdx)) {
+                     occupancy[movedIdx] = static_cast<int>(i);
+                }
+            }
+
+            world1.agents.pop_back();
+
+        }
+        else {
+            ++i;
+        }
+    }
+    if (world1.agents.empty()) {
+        running = false;     
+        return;              
+    }
 
     repopulate();
-
     updateColors(scaledDt);
 }
 
@@ -161,8 +182,9 @@ void SimulationSystem::repopulate() {
             if (occupancy[idx] == -1) {
                 std::unique_ptr<Agent> newAgent;
 
-                int type = typeDist(gen);
-                if (type == 0)
+                AgentType type = (typeDist(gen) == 0) ? AgentType::A : AgentType::B;
+
+                if (type == AgentType::A)
                     newAgent = std::make_unique<AgentA>(pos);
                 else
                     newAgent = std::make_unique<AgentB>(pos);
@@ -194,10 +216,11 @@ void SimulationSystem::repopulate() {
         if (a->reproduceCooldown > 0.f)
             continue;
 
-        bool aIsA = dynamic_cast<AgentA*>(a.get()) != nullptr;
-        bool aIsB = dynamic_cast<AgentB*>(a.get()) != nullptr;
-        if (!aIsA && !aIsB)
-            continue;
+        bool aIsA = (a->type == AgentType::A);
+        bool aIsB = (a->type == AgentType::B);
+
+        if (!aIsA && !aIsB) 
+             continue;
 
         for (const auto& d : directions) {
             if (static_cast<int>(world1.agents.size()) + static_cast<int>(newborns.size()) >= maxAgents)
@@ -216,8 +239,8 @@ void SimulationSystem::repopulate() {
 
             auto& b = world1.agents[nIdx];
 
-            bool bIsA = dynamic_cast<AgentA*>(b.get()) != nullptr;
-            bool bIsB = dynamic_cast<AgentB*>(b.get()) != nullptr;
+            bool bIsA = (b->type == AgentType::A);
+            bool bIsB = (b->type == AgentType::B);
 
             bool opposite = (aIsA && bIsB) || (aIsB && bIsA);
             if (!opposite)
