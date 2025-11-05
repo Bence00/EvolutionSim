@@ -16,13 +16,16 @@ public:
         if (ImGui::Checkbox("Start/Pause", &running)) {
             sim.setRunning(running);
         }
-
+        bool newborn = sim.isNewbornCooldownEnabled();   
+        if (ImGui::Checkbox("Newborn Cooldown", &newborn)) { 
+            sim.setNewbornCooldownEnabled(newborn);          
+        }
         if (ImGui::Button("Reset")) {
             sim.reset();
         }
 
         int gridSize[2] = { world.gridWidth, world.gridHeight };
-        if (!running && ImGui::SliderInt2("Grid Size", gridSize, 10, 200)) {
+        if (!running && ImGui::SliderInt2("Grid Size", gridSize, 10, 500)) {
             world.gridWidth  = gridSize[0];
             world.gridHeight = gridSize[1];
             //sim.reset();
@@ -33,20 +36,18 @@ public:
         if (ImGui::SliderInt("Agent A count", &aCount, 0, 200)) {
             sim.numAgentA = aCount;
         }
+        
+
         if (ImGui::SliderInt("Agent B count", &bCount, 0, 200)) {
             sim.numAgentB = bCount;
         }
-
         float sim_speed = sim.simulation_speed;
         if (ImGui::SliderFloat("Simulation Speed", &sim_speed, 0.1f, 100.0f, "%.3f", ImGuiSliderFlags_Logarithmic)) {
             sim.simulation_speed = sim_speed;
         }
-
-        static float cooldown = Agent::defaultReproduceCooldown;  
-        if (ImGui::SliderFloat("Reproduce cooldown", &cooldown, 0.5f, 200.0f, "%.1f s")) {
-            for (auto& ag : world.agents) {
-                ag->reproduceCooldown = cooldown;
-            }
+        float cooldown = sim.getReproduceCooldown();
+        if (ImGui::SliderFloat("Reproduce Cooldown", &cooldown, 0.1f, 200.f, "%.1f s")) {
+            sim.setReproduceCooldown(cooldown);
         }
 
         ImGui::End();

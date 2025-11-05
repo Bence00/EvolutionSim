@@ -1,16 +1,22 @@
 #pragma once
-#include <SFML/Graphics.hpp>
+
 #include "core/WorldState.hpp"
+#include <SFML/Graphics/VertexArray.hpp>
+
+namespace sf {
+    class RenderWindow;
+}
 
 class GridRenderer {
 public:
-    explicit GridRenderer(WorldState& state);
+    explicit GridRenderer(WorldState& s);
 
     void draw(sf::RenderWindow& window);
 
 private:
     WorldState& state;
 
-    sf::RectangleShape cellShape;  
-    sf::RectangleShape agentShape;    
+    sf::VertexArray m_gridFills;   
+    sf::VertexArray m_gridLines;   
+    sf::VertexArray m_agentQuads;  
 };

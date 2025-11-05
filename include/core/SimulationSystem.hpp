@@ -16,14 +16,18 @@ public:
 
     void setSpeed(float s) { simulation_speed = s; }
 
+    void setReproduceCooldown(float v) { reproduceCooldownSec = v; }
+    float getReproduceCooldown() const { return reproduceCooldownSec; }
+
     void collision();
     void repopulate();
+
+    void setNewbornCooldownEnabled(bool enabled) { newbornCooldownEnabled = enabled; }
+    bool isNewbornCooldownEnabled() const { return newbornCooldownEnabled; }
 
     int numAgentA = 100;
     int numAgentB = 100;
     float simulation_speed = 5.0f;
-
-
 private:
     WorldState& world1;
 
@@ -34,9 +38,15 @@ private:
 
     std::vector<int> occupancy;
 
+    std::uint64_t spawnCounterA = 0;
+    std::uint64_t spawnCounterB = 0;
+
+    float reproduceCooldownSec = Agent::defaultReproduceCooldown;
     bool  running = false;
 
     sf::Vector2i randomCell();
+
+    bool newbornCooldownEnabled = true; 
 
     void movement(float dt);
     void updateColors(float dt);

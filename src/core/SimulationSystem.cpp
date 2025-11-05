@@ -1,18 +1,28 @@
 #include "core/SimulationSystem.hpp"
 #include "core/Agent.hpp"
+#include "globals.hpp" 
 #include <algorithm>
-#include "globals.hpp"
 #include <array>
+
+namespace {
+    static constexpr float MAX_GRID_OCCUPANCY = 0.7f;
+    static constexpr int MAX_SPAWN_ATTEMPTS = 32;
+    static constexpr float MIN_STEP_INTERVAL = 0.1f;
+    static constexpr float NEWBORN_HIGHLIGHT_DURATION = 5.0f;
+    static constexpr int INITIAL_NEWBORN_RESERVE = 100;
+    const sf::Color NEWBORN_HIGHLIGHT_COLOR = sf::Color::White;
+    const sf::Color PARENT_HIGHLIGHT_COLOR = sf::Color::Yellow;
+    const sf::Color AGENT_A_COLOR = sf::Color(106, 163, 217);
+}
 
 SimulationSystem::SimulationSystem(WorldState& s)
     : world1(s),
       gen(std::random_device{}()),
-      distX(0, 0),
-      distY(0, 0),
       speedDist(-0.25f, 0.25f)
 {
     numAgentA = 4;
     numAgentB = 4;
+    newbornCooldownEnabled = true; 
     reset();
 }
 
@@ -21,33 +31,35 @@ void SimulationSystem::reset() {
 
     int W = std::max(1, world1.gridWidth);
     int H = std::max(1, world1.gridHeight);
+    int cells = W * H;
 
     distX = std::uniform_int_distribution<>(0, W - 1);
     distY = std::uniform_int_distribution<>(0, H - 1);
 
-    spawnPredator();
+    occupancy.assign(cells, -1);
 
     for (int i = 0; i < numAgentA; ++i)
         spawnAgentA();
 
     for (int i = 0; i < numAgentB; ++i)
         spawnAgentB();
+
 }
 
 void SimulationSystem::update(sf::Time dt) {
     if (!running) return;
 
     float scaledDt = dt.asSeconds() * simulation_speed;
-    collision();
+
     movement(scaledDt);
 
     for (auto& a : world1.agents) {
-    if (a->reproduceCooldown > 0.f)
-        a->reproduceCooldown -= dt.asSeconds();
+        if (a->reproduceCooldown > 0.f)
+            a->reproduceCooldown -= dt.asSeconds();
     }
+
     repopulate(); 
     updateColors(scaledDt);
-
 }
 
 void SimulationSystem::movement(float dt) {
@@ -60,12 +72,19 @@ void SimulationSystem::movement(float dt) {
         auto& a = world1.agents[i];
         a->timeSinceMove += dt;
 
+        if (a->timeSinceMove > a->stepInterval * 2.f)
+            a->timeSinceMove = a->stepInterval;
+
         if (a->timeSinceMove < a->stepInterval)
             continue;
 
         a->timeSinceMove -= a->stepInterval;
 
         sf::Vector2i current = a->cell;
+
+        if (current.x < 0 || current.x >= W || current.y < 0 || current.y >= H) {
+            continue;
+        }
 
         int stepX = stepDist(gen);
         int stepY = stepDist(gen);
@@ -80,9 +99,10 @@ void SimulationSystem::movement(float dt) {
         int nextIdx = next.y * W + next.x;
         int curIdx  = current.y * W + current.x;
 
-        if (occupancy[nextIdx] == -1) {
+        if (occupancy[nextIdx] == -1)
+        {
             occupancy[curIdx] = -1;
-            occupancy[nextIdx] = static_cast<int>(i);
+            occupancy[nextIdx] = static_cast<int>(i); 
             a->cell = next;
         }
     }
@@ -91,8 +111,11 @@ void SimulationSystem::movement(float dt) {
 void SimulationSystem::repopulate() {
     const int W = world1.gridWidth;
     const int H = world1.gridHeight;
+    const int maxAgents = static_cast<int>(W * H * MAX_GRID_OCCUPANCY);
 
-    // 4 irány
+    if (static_cast<int>(world1.agents.size()) >= maxAgents)
+        return;
+
     const std::array<sf::Vector2i, 4> directions = {
         sf::Vector2i{ 1, 0 },
         sf::Vector2i{-1, 0 },
@@ -101,10 +124,14 @@ void SimulationSystem::repopulate() {
     };
 
     std::vector<std::unique_ptr<Agent>> newborns;
+    newborns.reserve(INITIAL_NEWBORN_RESERVE);
 
-    std::uniform_int_distribution<> typeDist(0, 1); // 0 = A, 1 = B
+    std::uniform_int_distribution<> typeDist(0, 1);
 
     auto trySpawnAround = [&](const sf::Vector2i& base) -> bool {
+        if (static_cast<int>(world1.agents.size()) + static_cast<int>(newborns.size()) >= maxAgents)
+            return false;
+
         for (const auto& d : directions) {
             sf::Vector2i pos = base + d;
             if (pos.x < 0 || pos.x >= W || pos.y < 0 || pos.y >= H)
@@ -112,20 +139,32 @@ void SimulationSystem::repopulate() {
 
             int idx = pos.y * W + pos.x;
             if (occupancy[idx] == -1) {
-                int type = typeDist(gen);  // véletlen döntés
+                std::unique_ptr<Agent> newAgent;
 
+                int type = typeDist(gen);
                 if (type == 0)
-                    newborns.push_back(std::make_unique<AgentA>(pos));
+                    newAgent = std::make_unique<AgentA>(pos);
                 else
-                    newborns.push_back(std::make_unique<AgentB>(pos));
+                    newAgent = std::make_unique<AgentB>(pos);
 
+                if (newbornCooldownEnabled) {
+                    newAgent->reproduceCooldown = reproduceCooldownSec;
+                }
+
+                highlightAgent(*newAgent, NEWBORN_HIGHLIGHT_COLOR, NEWBORN_HIGHLIGHT_DURATION);
+
+                int newbornIndex = static_cast<int>(world1.agents.size() + newborns.size());
+                occupancy[idx] = newbornIndex;
+                
+                newborns.push_back(std::move(newAgent));
                 return true;
             }
         }
         return false;
     };
 
-    for (std::size_t i = 0; i < world1.agents.size(); ++i) {
+    const std::size_t currentAgentCount = world1.agents.size();
+    for (std::size_t i = 0; i < currentAgentCount; ++i) {
         auto& a = world1.agents[i];
 
         if (a->reproduceCooldown > 0.f)
@@ -137,6 +176,9 @@ void SimulationSystem::repopulate() {
             continue;
 
         for (const auto& d : directions) {
+            if (static_cast<int>(world1.agents.size()) + static_cast<int>(newborns.size()) >= maxAgents)
+                break;
+
             sf::Vector2i npos = a->cell + d;
             if (npos.x < 0 || npos.x >= W || npos.y < 0 || npos.y >= H)
                 continue;
@@ -144,6 +186,9 @@ void SimulationSystem::repopulate() {
             int nIdx = occupancy[npos.y * W + npos.x];
             if (nIdx == -1)
                 continue;
+
+            if (nIdx < 0 || nIdx >= static_cast<int>(world1.agents.size()))
+                continue; 
 
             auto& b = world1.agents[nIdx];
 
@@ -154,24 +199,27 @@ void SimulationSystem::repopulate() {
             if (!opposite)
                 continue;
 
-            bool spawned = false;
-            spawned = trySpawnAround(a->cell);
+            bool spawned = trySpawnAround(a->cell);
             if (!spawned)
                 spawned = trySpawnAround(b->cell);
 
             if (spawned) {
-                b->reproduceCooldown = Agent::defaultReproduceCooldown;
+                a->reproduceCooldown = reproduceCooldownSec;
+                b->reproduceCooldown = reproduceCooldownSec;
 
-                highlightAgent(*a, sf::Color::Yellow, Agent::defaultReproduceCooldown);
-                highlightAgent(*b, sf::Color::Yellow, Agent::defaultReproduceCooldown);
+                highlightAgent(*a, PARENT_HIGHLIGHT_COLOR, reproduceCooldownSec);
+                highlightAgent(*b, PARENT_HIGHLIGHT_COLOR, reproduceCooldownSec);
+                break; 
             }
         }
     }
 
-    for (auto& n : newborns)
+    for (auto& n : newborns) {
+        if (static_cast<int>(world1.agents.size()) >= maxAgents)
+            break;
         world1.agents.push_back(std::move(n));
+    }
 
-    collision();
 }
 
 void SimulationSystem::collision() {
@@ -196,33 +244,95 @@ void SimulationSystem::collision() {
     }
 }
 
-void SimulationSystem::spawnPredator() {
-    auto cell = randomCell();
-    auto predator = std::make_unique<Agent>(cell, 1.0f);
-    predator->color = sf::Color::Red;
-    world1.agents.push_back(std::move(predator));
-}
-
 void SimulationSystem::spawnAgentA() {
-    auto cell = randomCell();
+    const int W = world1.gridWidth;
+    const int H = world1.gridHeight;
+    const int cells = W * H;
+    const int maxAgents = static_cast<int>(cells * MAX_GRID_OCCUPANCY);
+
+    if ((int)world1.agents.size() >= maxAgents)
+        return;
+
+    if ((int)occupancy.size() != cells) {
+        collision(); 
+    }
+
+    sf::Vector2i cell{-1, -1};
+    bool found = false;
+
+    for (int attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; ++attempt) {
+        int x = distX(gen);
+        int y = distY(gen);
+        int idx = y * W + x;
+
+        if (idx >= 0 && idx < (int)occupancy.size() && occupancy[idx] == -1) {
+            cell = {x, y};
+            found = true;
+            break;
+        }
+    }
+
+    if (!found)
+        return;
+
     auto agent = std::make_unique<AgentA>(cell);
-    agent->stepInterval = std::max(0.1f, agent->stepInterval + speedDist(gen));
-    agent->color = sf::Color(106, 163, 217);
+    agent->stepInterval = std::max(MIN_STEP_INTERVAL, agent->stepInterval + speedDist(gen));
+    agent->color = AGENT_A_COLOR;
+
+    int idx = cell.y * W + cell.x;
+    occupancy[idx] = (int)world1.agents.size(); 
+
     world1.agents.push_back(std::move(agent));
 }
 
 void SimulationSystem::spawnAgentB() {
-    auto cell = randomCell();
+    const int W = world1.gridWidth;
+    const int H = world1.gridHeight;
+    const int cells = W * H;
+    const int maxAgents = static_cast<int>(cells * MAX_GRID_OCCUPANCY);
+
+    if ((int)world1.agents.size() >= maxAgents)
+        return;
+
+    if ((int)occupancy.size() != cells) {
+        collision(); 
+    }
+
+    sf::Vector2i cell{-1, -1};
+    bool found = false;
+
+    for (int attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; ++attempt) {
+        int x = distX(gen);
+        int y = distY(gen);
+        int idx = y * W + x;
+
+        if (idx >= 0 && idx < (int)occupancy.size() && occupancy[idx] == -1) {
+            cell = {x, y};
+            found = true;
+            break;
+        }
+    }
+
+    if (!found)
+        return;
+
     auto agent = std::make_unique<AgentB>(cell);
-    agent->stepInterval = std::max(0.1f, agent->stepInterval + speedDist(gen));
+    agent->stepInterval = std::max(MIN_STEP_INTERVAL, agent->stepInterval + speedDist(gen));
+
+    int idx = cell.y * W + cell.x;
+    occupancy[idx] = (int)world1.agents.size();
+
     world1.agents.push_back(std::move(agent));
 }
 
-sf::Vector2i SimulationSystem::randomCell() {
-    int x = distX(gen);
-    int y = distY(gen);
-    return { x, y };
+void SimulationSystem::highlightAgent(Agent& agent, sf::Color newColor, float duration) {
+    if (agent.colorTimer <= 0.f) {
+        agent.originalColor = agent.color;
+    }
+    agent.color = newColor;
+    agent.colorTimer = duration;
 }
+
 void SimulationSystem::updateColors(float dt) {
     for (auto& a : world1.agents) {
         if (a->colorTimer > 0.f) {
@@ -233,9 +343,4 @@ void SimulationSystem::updateColors(float dt) {
             }
         }
     }
-}
-void SimulationSystem::highlightAgent(Agent& agent, sf::Color newColor, float duration) {
-    agent.originalColor = agent.color;
-    agent.color = newColor;
-    agent.colorTimer = duration;
 }

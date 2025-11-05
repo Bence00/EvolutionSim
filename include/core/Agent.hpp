@@ -9,10 +9,10 @@ public:
           energy(100.f),
           stepInterval(spd),
           size(0.3f),
-          color(col),              
+          color(col),
           originalColor(col),
           timeSinceMove(0.f),
-          reproduceCooldown(5.0f),
+          reproduceCooldown(0.0f),   
           colorTimer(0.f)
     {}
 
@@ -25,8 +25,8 @@ public:
     sf::Color color;
     sf::Color originalColor;
     float timeSinceMove;
-    float reproduceCooldown = 0.f;
-    inline static constexpr float defaultReproduceCooldown = 5.0f;
+    float reproduceCooldown;       
+    inline static constexpr float defaultReproduceCooldown = 5.0f; 
     float colorTimer;
 };
 
