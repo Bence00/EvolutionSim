@@ -42,13 +42,15 @@ public:
             sim.numAgentB = bCount;
         }
         float sim_speed = sim.simulation_speed;
-        if (ImGui::SliderFloat("Simulation Speed", &sim_speed, 0.1f, 100.0f, "%.3f", ImGuiSliderFlags_Logarithmic)) {
+        if (ImGui::SliderFloat("Simulation Speed", &sim_speed, 0.1f, 100.0f, "%.3fx", ImGuiSliderFlags_Logarithmic)) {
             sim.simulation_speed = sim_speed;
         }
         float cooldown = sim.getReproduceCooldown();
-        if (ImGui::SliderFloat("Reproduce Cooldown", &cooldown, 0.1f, 200.f, "%.1f s")) {
+        if (ImGui::SliderFloat("Reproduce Cooldown", &cooldown, 0.1f, 200.f, "%.3fs", ImGuiSliderFlags_Logarithmic)) {
             sim.setReproduceCooldown(cooldown);
         }
+
+        ImGui::SliderFloat("Default Lifetime", &sim.defaultLifetime, 10.f, 500.f, "%.3fs",ImGuiSliderFlags_Logarithmic);
 
         ImGui::End();
     }

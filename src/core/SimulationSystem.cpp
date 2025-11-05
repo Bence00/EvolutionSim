@@ -8,8 +8,8 @@ namespace {
     static constexpr float MAX_GRID_OCCUPANCY = 0.7f;
     static constexpr int MAX_SPAWN_ATTEMPTS = 32;
     static constexpr float MIN_STEP_INTERVAL = 0.1f;
-    static constexpr float NEWBORN_HIGHLIGHT_DURATION = 5.0f;
     static constexpr int INITIAL_NEWBORN_RESERVE = 100;
+    static constexpr int LIFTIME_DISTRIBUTION_RANGE = 50;
     const sf::Color NEWBORN_HIGHLIGHT_COLOR = sf::Color::White;
     const sf::Color PARENT_HIGHLIGHT_COLOR = sf::Color::Yellow;
     const sf::Color AGENT_A_COLOR = sf::Color(106, 163, 217);
@@ -44,13 +44,13 @@ void SimulationSystem::reset() {
     for (int i = 0; i < numAgentB; ++i)
         spawnAgentB();
 
+    elapsedSimTime = 0.f;
 }
 
 void SimulationSystem::update(sf::Time dt) {
     if (!running) return;
-
     float scaledDt = dt.asSeconds() * simulation_speed;
-
+    elapsedSimTime += scaledDt;
     movement(scaledDt);
 
     for (auto& a : world1.agents) {
@@ -58,9 +58,29 @@ void SimulationSystem::update(sf::Time dt) {
             a->reproduceCooldown -= dt.asSeconds();
     }
 
-    repopulate(); 
+    const float deathRate = simulation_speed;  
+    for (auto& a : world1.agents) {
+        a->timeUntilDeath(dt.asSeconds(), deathRate);
+    }
+
+    world1.agents.erase(
+        std::remove_if(
+            world1.agents.begin(),
+            world1.agents.end(),
+            [](const std::unique_ptr<Agent>& ag) {
+                return ag->lifeTime <= 0.f;
+            }
+        ),
+        world1.agents.end()
+    );
+
+    collision();
+
+    repopulate();
+
     updateColors(scaledDt);
 }
+
 
 void SimulationSystem::movement(float dt) {
     std::uniform_int_distribution<> stepDist(-1, 1);
@@ -150,8 +170,12 @@ void SimulationSystem::repopulate() {
                 if (newbornCooldownEnabled) {
                     newAgent->reproduceCooldown = reproduceCooldownSec;
                 }
+                int random_lifetime = std::uniform_int_distribution<>(-LIFTIME_DISTRIBUTION_RANGE,LIFTIME_DISTRIBUTION_RANGE)(gen);
+                newAgent->lifeTime = defaultLifetime + random_lifetime;
 
-                highlightAgent(*newAgent, NEWBORN_HIGHLIGHT_COLOR, NEWBORN_HIGHLIGHT_DURATION);
+                if(newbornCooldownEnabled){
+                    highlightAgent(*newAgent, NEWBORN_HIGHLIGHT_COLOR,  reproduceCooldownSec);
+                }
 
                 int newbornIndex = static_cast<int>(world1.agents.size() + newborns.size());
                 occupancy[idx] = newbornIndex;
@@ -219,9 +243,7 @@ void SimulationSystem::repopulate() {
             break;
         world1.agents.push_back(std::move(n));
     }
-
 }
-
 void SimulationSystem::collision() {
     const int W = world1.gridWidth;
     const int H = world1.gridHeight;
@@ -243,7 +265,6 @@ void SimulationSystem::collision() {
         }
     }
 }
-
 void SimulationSystem::spawnAgentA() {
     const int W = world1.gridWidth;
     const int H = world1.gridHeight;
@@ -279,12 +300,14 @@ void SimulationSystem::spawnAgentA() {
     agent->stepInterval = std::max(MIN_STEP_INTERVAL, agent->stepInterval + speedDist(gen));
     agent->color = AGENT_A_COLOR;
 
+    int random_lifetime = std::uniform_int_distribution<>(-LIFTIME_DISTRIBUTION_RANGE,LIFTIME_DISTRIBUTION_RANGE)(gen);
+    agent->lifeTime = defaultLifetime + random_lifetime;
+
     int idx = cell.y * W + cell.x;
     occupancy[idx] = (int)world1.agents.size(); 
 
     world1.agents.push_back(std::move(agent));
 }
-
 void SimulationSystem::spawnAgentB() {
     const int W = world1.gridWidth;
     const int H = world1.gridHeight;
@@ -319,12 +342,14 @@ void SimulationSystem::spawnAgentB() {
     auto agent = std::make_unique<AgentB>(cell);
     agent->stepInterval = std::max(MIN_STEP_INTERVAL, agent->stepInterval + speedDist(gen));
 
+    int random_lifetime = std::uniform_int_distribution<>(-LIFTIME_DISTRIBUTION_RANGE,LIFTIME_DISTRIBUTION_RANGE)(gen);
+     agent->lifeTime = defaultLifetime + random_lifetime;
+
     int idx = cell.y * W + cell.x;
     occupancy[idx] = (int)world1.agents.size();
 
     world1.agents.push_back(std::move(agent));
 }
-
 void SimulationSystem::highlightAgent(Agent& agent, sf::Color newColor, float duration) {
     if (agent.colorTimer <= 0.f) {
         agent.originalColor = agent.color;
@@ -332,7 +357,6 @@ void SimulationSystem::highlightAgent(Agent& agent, sf::Color newColor, float du
     agent.color = newColor;
     agent.colorTimer = duration;
 }
-
 void SimulationSystem::updateColors(float dt) {
     for (auto& a : world1.agents) {
         if (a->colorTimer > 0.f) {
@@ -343,4 +367,11 @@ void SimulationSystem::updateColors(float dt) {
             }
         }
     }
+}
+void SimulationSystem::agentDeath(std::size_t index)
+{
+    if (index >= world1.agents.size())
+        return;
+
+    world1.agents.erase(world1.agents.begin() + static_cast<long>(index));
 }

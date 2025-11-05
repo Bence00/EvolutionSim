@@ -6,7 +6,7 @@ class Agent {
 public:
     Agent(sf::Vector2i c, float spd, sf::Color col = sf::Color::Red)
         : cell(c),
-          energy(100.f),
+          lifeTime(0.0f),
           stepInterval(spd),
           size(0.3f),
           color(col),
@@ -17,9 +17,13 @@ public:
     {}
 
     virtual ~Agent() = default;
+    void timeUntilDeath(float dt, float rate)
+    {
+        lifeTime -= dt * rate;
+    }
 
     sf::Vector2i cell;
-    float energy;
+    float lifeTime;
     float stepInterval;
     float size;
     sf::Color color;

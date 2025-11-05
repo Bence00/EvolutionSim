@@ -28,6 +28,9 @@ public:
     int numAgentA = 100;
     int numAgentB = 100;
     float simulation_speed = 5.0f;
+    float defaultLifetime = 100.f; 
+    float elapsedSimTime = 0.f; 
+
 private:
     WorldState& world1;
 
@@ -44,13 +47,13 @@ private:
     float reproduceCooldownSec = Agent::defaultReproduceCooldown;
     bool  running = false;
 
-    sf::Vector2i randomCell();
-
     bool newbornCooldownEnabled = true; 
 
     void movement(float dt);
     void updateColors(float dt);
     void highlightAgent (Agent& agent, sf::Color newColor, float duration);
+    
+    void agentDeath(std::size_t index);
 
     void spawnPredator();
     void spawnAgentA();
