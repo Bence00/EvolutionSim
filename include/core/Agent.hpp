@@ -37,7 +37,7 @@ public:
     sf::Color originalColor;
     float timeSinceMove;
     float reproduceCooldown;
-    inline static constexpr float defaultReproduceCooldown = 5.0f;
+    inline static constexpr float defaultReproduceCooldown = 19.8f;
     float colorTimer;
 };
 

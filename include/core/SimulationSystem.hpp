@@ -25,10 +25,10 @@ public:
     void setNewbornCooldownEnabled(bool enabled) { newbornCooldownEnabled = enabled; }
     bool isNewbornCooldownEnabled() const { return newbornCooldownEnabled; }
 
-    int numAgentA = 100;
-    int numAgentB = 100;
-    float simulation_speed = 5.0f;
-    float defaultLifetime = 100.f; 
+    int numAgentA = 2;
+    int numAgentB = 2;
+    float simulation_speed = 100.0f;
+    float defaultLifetime = 500.f; 
     float elapsedSimTime = 0.f; 
 
 private:

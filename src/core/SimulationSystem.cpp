@@ -20,8 +20,8 @@ SimulationSystem::SimulationSystem(WorldState& s)
       gen(std::random_device{}()),
       speedDist(-0.25f, 0.25f)
 {
-    numAgentA = 50;
-    numAgentB = 50;
+    numAgentA = 2;
+    numAgentB = 2;
     newbornCooldownEnabled = true; 
     reset();
 }

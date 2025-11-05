@@ -9,7 +9,6 @@ public:
     explicit SimulationPanel(SimulationSystem& sim, WorldState& world)
         : sim(sim), world(world) {}
 
-    // ⬇ bool-t ad vissza
     bool draw() {
         bool resetPressed = false;
 
@@ -18,6 +17,7 @@ public:
         bool running = sim.isRunning();
         if (ImGui::Checkbox("Start/Pause", &running)) {
             sim.setRunning(running);
+            // TODO: starting game previous config and new grid settings without crash
         }
 
         bool newborn = sim.isNewbornCooldownEnabled();   
@@ -27,7 +27,7 @@ public:
 
         if (ImGui::Button("Reset")) {
             sim.reset();
-            resetPressed = true;  // ⬅️ jelezzük a resetet
+            resetPressed = true;  
         }
 
         int gridSize[2] = { world.gridWidth, world.gridHeight };
@@ -46,7 +46,7 @@ public:
         }
 
         float sim_speed = sim.simulation_speed;
-        if (ImGui::SliderFloat("Simulation Speed", &sim_speed, 0.1f, 100.0f, "%.3fx", ImGuiSliderFlags_Logarithmic)) {
+        if (ImGui::SliderFloat("Simulation Speed", &sim_speed, 0.1f, 200.0f, "%.3fx", ImGuiSliderFlags_Logarithmic)) {
             sim.simulation_speed = sim_speed;
         }
 

@@ -16,6 +16,9 @@ public:
     }
 
     void update(sf::Time) {
+        if(!sim.isRunning())
+            return;
+
         float agents = static_cast<float>(world.agents.size());
         float t = sim.elapsedSimTime; 
 
@@ -28,38 +31,50 @@ public:
         timeHistory.push_back(t);
     }
 
-    void draw() {
-    ImGui::Begin("Simulation Graphs");
-    ImVec2 size = ImGui::GetContentRegionAvail();
+        void draw() {
+        ImGui::Begin("Simulation Graphs");
+        ImVec2 size = ImGui::GetContentRegionAvail();
 
-    if (!agentHistory.empty()) {
-        float minX = timeHistory.front();
-        float maxX = timeHistory.back();
+        if (!agentHistory.empty()) {
+            float minX = timeHistory.front();
+            float maxX = timeHistory.back();
 
-        const int W = world.gridWidth;
-        const int H = world.gridHeight;
-        const float MAX_GRID_OCCUPANCY = 0.75f;
-        const float maxAgents = static_cast<float>(W * H * MAX_GRID_OCCUPANCY);
+            const int W = world.gridWidth;
+            const int H = world.gridHeight;
+            const float MAX_GRID_OCCUPANCY = 0.75f;
+            const float maxAgents = static_cast<float>(W * H * MAX_GRID_OCCUPANCY);
 
-        float xMargin = (maxX - minX) * 0.05f;
+            float xMargin = (maxX - minX) * 0.05f;
+            if (xMargin <= 0.f) xMargin = 1.f;
 
-        if (ImPlot::BeginPlot("Agent Population", size)) {
-            ImPlot::SetupAxes("Time (s)", "Agent count",
-                            ImPlotAxisFlags_None, ImPlotAxisFlags_None);
+            if (ImPlot::BeginPlot("Agent Population", size)) {
+                ImPlot::SetupAxes("Time (s)", "Agent count",
+                                ImPlotAxisFlags_None,
+                                ImPlotAxisFlags_None);
 
-            ImPlot::SetupAxesLimits(minX, maxX + xMargin, 0.0f, maxAgents, ImPlotCond_Always);
+                float yMin = 1.0f;
+                float yMax = std::max(2.0f, maxAgents);
 
-            ImPlot::PlotLine("Agents",
-                            timeHistory.data(),
-                            agentHistory.data(),
-                            static_cast<int>(agentHistory.size()));
+                ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
 
-            ImPlot::EndPlot();
+                ImPlot::SetupAxesLimits(
+                    minX, maxX + xMargin,
+                    yMin, yMax,
+                    ImPlotCond_Always
+                );
+
+                ImPlot::PlotLine("Agents",
+                                timeHistory.data(),
+                                agentHistory.data(),
+                                static_cast<int>(agentHistory.size()));
+
+                ImPlot::EndPlot();
+            }
         }
+
+        ImGui::End();
     }
 
-    ImGui::End();
-}
 
 
     void reset() {
