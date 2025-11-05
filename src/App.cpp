@@ -91,7 +91,7 @@ void App::update() {
     sim.update(dt);
 
     simPanel.draw();
-    debugPanel.draw(dt);
+    debugPanel.draw(dt, sim);
 }
 
 void App::render() {
